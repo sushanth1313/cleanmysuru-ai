@@ -1,0 +1,687 @@
+// server.js - Minimal CleanMysuru AI Server
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const PORT = 3000;
+
+// In-memory storage (replace with MongoDB in production)
+let users = [];
+let complaints = [];
+let currentUser = null;
+
+// Mock AI Analysis
+function analyzeImage(filename) {
+  // Simulate AI processing
+  const wasteTypes = ['C_AND_D', 'GARBAGE_PILE', 'OVERFLOWING_BIN', 'MIXED_WASTE'];
+  const randomType = wasteTypes[Math.floor(Math.random() * wasteTypes.length)];
+  
+  return {
+    incidentType: randomType,
+    confidence: Math.floor(Math.random() * 30) + 70,
+    severity: 'MEDIUM',
+    description: `Detected possible ${randomType.replace(/_/g, ' ').toLowerCase()}`,
+    imageQuality: 'GOOD',
+    nightDetected: false,
+    reasoning: 'AI analysis completed'
+  };
+}
+
+// HTML Templates
+const loginPage = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanMysuru AI - Login</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    .register-link {
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+    .register-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌿 CleanMysuru AI</h1>
+    <p class="subtitle">Civic Waste Detection Platform</p>
+    
+    <form action="/api/login" method="POST">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required>
+      </div>
+      
+      <button type="submit">Sign In</button>
+    </form>
+    
+    <div class="register-link">
+      Don't have an account? <a href="/register">Register</a>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+const registerPage = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanMysuru AI - Register</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    .login-link {
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+    .login-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌿 CleanMysuru AI</h1>
+    <p class="subtitle">Create Citizen Account</p>
+    
+    <form action="/api/register" method="POST">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" placeholder="John Doe" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" placeholder="+91 98765 43210" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required>
+      </div>
+      
+      <button type="submit">Create Account</button>
+    </form>
+    
+    <div class="login-link">
+      Already have an account? <a href="/login">Sign In</a>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+const dashboardPage = (user, userComplaints) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanMysuru AI - Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      font-size: 24px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .logout-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 14px;
+      transition: background 0.3s;
+    }
+    .logout-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .stat-card h3 {
+      color: #666;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #333;
+    }
+    .action-section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .action-section h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .upload-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-weight: 500;
+      color: #333;
+    }
+    input, textarea {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .submit-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+    }
+    .complaints-section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .complaints-section h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .complaint-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+    }
+    .complaint-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .complaint-number {
+      font-weight: 700;
+      color: #667eea;
+      font-size: 16px;
+    }
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-submitted {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    .status-analyzing {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+    .status-analyzed {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+    .ai-result {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    .ai-result h4 {
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .ai-result p {
+      color: #666;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .confidence {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🌿 CleanMysuru AI</h1>
+    <div class="user-info">
+      <span>Welcome, ${user.name}</span>
+      <a href="/api/logout" class="logout-btn">Logout</a>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="stats">
+      <div class="stat-card">
+        <h3>Total Complaints</h3>
+        <div class="value">${userComplaints.length}</div>
+      </div>
+      <div class="stat-card">
+        <h3>Pending Review</h3>
+        <div class="value">${userComplaints.filter(c => c.status === 'SUBMITTED' || c.status === 'AI_ANALYZING').length}</div>
+      </div>
+      <div class="stat-card">
+        <h3>Analyzed</h3>
+        <div class="value">${userComplaints.filter(c => c.status === 'AI_ANALYZED').length}</div>
+      </div>
+    </div>
+    
+    <div class="action-section">
+      <h2>📸 Report Civic Waste</h2>
+      <form action="/api/complaints" method="POST" enctype="multipart/form-data" class="upload-form">
+        <div class="form-group">
+          <label for="evidence">Upload Photo/Video Evidence</label>
+          <input type="file" id="evidence" name="evidence" accept="image/*,video/*" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Description (Optional)</label>
+          <textarea id="description" name="description" rows="3" placeholder="Describe the waste issue..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="latitude">Location (Optional)</label>
+          <input type="text" id="latitude" name="latitude" placeholder="Latitude (e.g., 12.2958)">
+          <input type="text" id="longitude" name="longitude" placeholder="Longitude (e.g., 76.6394)">
+        </div>
+        
+        <button type="submit" class="submit-btn">Submit Complaint</button>
+      </form>
+    </div>
+    
+    <div class="complaints-section">
+      <h2>📋 My Complaints</h2>
+      ${userComplaints.length === 0 ? `
+        <div class="empty-state">
+          <p>No complaints submitted yet. Report a civic waste issue above!</p>
+        </div>
+      ` : userComplaints.map(complaint => `
+        <div class="complaint-card">
+          <div class="complaint-header">
+            <div class="complaint-number">${complaint.complaintNumber}</div>
+            <div class="status-badge status-${complaint.status.toLowerCase().replace('_', '-')}">
+              ${complaint.status.replace(/_/g, ' ')}
+            </div>
+          </div>
+          
+          <p><strong>Submitted:</strong> ${new Date(complaint.createdAt).toLocaleString()}</p>
+          ${complaint.description ? `<p><strong>Description:</strong> ${complaint.description}</p>` : ''}
+          ${complaint.latitude ? `<p><strong>Location:</strong> ${complaint.latitude}, ${complaint.longitude}</p>` : ''}
+          
+          ${complaint.aiAnalysis ? `
+            <div class="ai-result">
+              <h4>🤖 AI Analysis Result</h4>
+              <p><strong>Incident Type:</strong> ${complaint.aiAnalysis.incidentType.replace(/_/g, ' ')}</p>
+              <p><strong>Description:</strong> ${complaint.aiAnalysis.description}</p>
+              <p><strong>Image Quality:</strong> ${complaint.aiAnalysis.imageQuality}</p>
+              <span class="confidence">Confidence: ${complaint.aiAnalysis.confidence}%</span>
+            </div>
+          ` : complaint.status === 'AI_ANALYZING' ? `
+            <div class="ai-result">
+              <p>🔄 AI analysis in progress...</p>
+            </div>
+          ` : ''}
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+// Server Handler
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  
+  // Routes
+  if (url.pathname === '/' || url.pathname === '/login') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(loginPage);
+  }
+  
+  else if (url.pathname === '/register') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(registerPage);
+  }
+  
+  else if (url.pathname === '/api/register' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      const params = new URLSearchParams(body);
+      const newUser = {
+        id: Date.now().toString(),
+        name: params.get('name'),
+        email: params.get('email'),
+        phone: params.get('phone'),
+        password: params.get('password'), // In production: hash this!
+        role: 'CITIZEN',
+        createdAt: new Date()
+      };
+      
+      users.push(newUser);
+      currentUser = newUser;
+      
+      res.writeHead(302, { 'Location': '/dashboard' });
+      res.end();
+    });
+  }
+  
+  else if (url.pathname === '/api/login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      const params = new URLSearchParams(body);
+      const email = params.get('email');
+      const password = params.get('password');
+      
+      const user = users.find(u => u.email === email && u.password === password);
+      
+      if (user) {
+        currentUser = user;
+        res.writeHead(302, { 'Location': '/dashboard' });
+        res.end();
+      } else {
+        res.writeHead(302, { 'Location': '/login?error=invalid' });
+        res.end();
+      }
+    });
+  }
+  
+  else if (url.pathname === '/dashboard') {
+    if (!currentUser) {
+      res.writeHead(302, { 'Location': '/login' });
+      res.end();
+      return;
+    }
+    
+    const userComplaints = complaints.filter(c => c.userId === currentUser.id);
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(dashboardPage(currentUser, userComplaints));
+  }
+  
+  else if (url.pathname === '/api/complaints' && req.method === 'POST') {
+    // Simple file upload handling (in production use proper multipart parser)
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      const complaint = {
+        id: Date.now().toString(),
+        complaintNumber: `CM${Date.now().toString().slice(-8)}`,
+        userId: currentUser.id,
+        status: 'SUBMITTED',
+        description: 'File uploaded', // Parse from multipart in production
+        createdAt: new Date(),
+        aiAnalysis: null
+      };
+      
+      complaints.push(complaint);
+      
+      // Simulate AI analysis after 2 seconds
+      setTimeout(() => {
+        complaint.status = 'AI_ANALYZING';
+        setTimeout(() => {
+          complaint.aiAnalysis = analyzeImage('uploaded-file.jpg');
+          complaint.status = 'AI_ANALYZED';
+        }, 3000);
+      }, 2000);
+      
+      res.writeHead(302, { 'Location': '/dashboard' });
+      res.end();
+    });
+  }
+  
+  else if (url.pathname === '/api/logout') {
+    currentUser = null;
+    res.writeHead(302, { 'Location': '/login' });
+    res.end();
+  }
+  
+  else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('404 Not Found');
+  }
+});
+
+server.listen(PORT, () => {
+  console.log('');
+  console.log('🚀 CleanMysuru AI Server Running!');
+  console.log('');
+  console.log(`   Local:    http://localhost:${PORT}`);
+  console.log('');
+  console.log('📖 Quick Start:');
+  console.log('   1. Open http://localhost:3000/register');
+  console.log('   2. Create an account');
+  console.log('   3. Upload waste evidence');
+  console.log('   4. See AI analysis results');
+  console.log('');
+});

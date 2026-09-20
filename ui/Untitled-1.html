@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Royal Amba Vilas | Mysore Palace 3D Heritage Experience</title>
+
+  <!-- Google Fonts: Royal Serif & Modern Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <!-- GSAP for Luxury UI & Camera Transitions -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            royal: {
+              gold: '#D4AF37',
+              goldLight: '#F3E5AB',
+              deepGold: '#996515',
+              crimson: '#6B0F1A',
+              navy: '#0A0E17',
+              surface: 'rgba(18, 24, 38, 0.75)',
+              border: 'rgba(212, 175, 55, 0.25)'
+            }
+          },
+          fontFamily: {
+            serif: ['Cinzel', 'serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #0A0E17; }
+    
+    .glass-panel {
+      background: rgba(10, 14, 23, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+    }
+    
+    .gold-glow {
+      text-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+    }
+
+    .gold-btn {
+      background: linear-gradient(135deg, #D4AF37 0%, #AA771C 100%);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .gold-btn:hover {
+      box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+      transform: translateY(-2px);
+    }
+
+    /* Custom Scrollbar for Drawer */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
+  </style>
+</head>
+<body class="text-slate-100 font-sans select-none">
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="webgl-container" class="absolute inset-0 z-0"></div>
+
+  <!-- UI OVERLAY -->
+  <div class="relative z-10 flex flex-col justify-between h-screen p-6 md:p-8 pointer-events-none">
+
+    <!-- TOP BAR: Navigation & Brand -->
+    <header class="flex items-center justify-between w-full pointer-events-auto">
+      <div class="flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-full border border-royal-gold/40 flex items-center justify-center glass-panel shadow-lg shadow-black/40">
+          <i data-lucide="crown" class="w-6 h-6 text-royal-gold"></i>
+        </div>
+        <div>
+          <h1 class="font-serif text-xl md:text-2xl tracking-widest uppercase font-bold text-royal-goldLight gold-glow">
+            Mysore Palace
+          </h1>
+          <p class="text-xs uppercase tracking-[0.25em] text-royal-gold/70">Amba Vilas • 1912</p>
+        </div>
+      </div>
+
+      <!-- Live Palace Status -->
+      <div class="hidden md:flex items-center space-x-6 glass-panel px-6 py-2.5 rounded-full text-xs">
+        <div class="flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-300">Open for Visitors</span>
+        </div>
+        <span class="text-royal-gold/30">|</span>
+        <div class="flex items-center space-x-2 text-slate-300">
+          <i data-lucide="sun" class="w-3.5 h-3.5 text-royal-gold"></i>
+          <span>Mysuru 28°C</span>
+        </div>
+        <span class="text-royal-gold/30">|</span>
+        <div class="flex items-center space-x-2 text-royal-goldLight">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-royal-gold"></i>
+          <span id="light-status-text">Illumination Off</span>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <button onclick="toggleInfoModal()" class="pointer-events-auto gold-btn text-black font-semibold text-xs uppercase tracking-wider px-6 py-3 rounded-full flex items-center space-x-2 shadow-lg">
+        <i data-lucide="ticket" class="w-4 h-4"></i>
+        <span>Book Royal Pass</span>
+      </button>
+    </header>
+
+    <!-- LEFT SIDEBAR: Interactive Hotspots -->
+    <nav class="hidden lg:flex flex-col space-y-3 pointer-events-auto w-64">
+      <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-royal-gold mb-1 pl-2">Architectural Highlights</span>
+      
+      <button onclick="focusHotspot('overview')" class="hotspot-btn active text-left px-4 py-3 rounded-xl glass-panel text-xs font-medium text-slate-200 border-l-4 border-l-royal-gold transition-all duration-300 hover:bg-royal-gold/10 flex items-center justify-between group">
+        <span>01. Grand Aerial View</span>
+        <i data-lucide="compass" class="w-4 h-4 text-royal-gold opacity-60 group-hover:opacity-100 transition"></i>
+      </button>
+
+      <button onclick="focusHotspot('dome')" class="hotspot-btn text-left px-4 py-3 rounded-xl glass-panel text-xs font-medium text-slate-200 border-l-4 border-l-transparent transition-all duration-300 hover:bg-royal-gold/10 flex items-center justify-between group">
+        <span>02. Central Kalasa Dome</span>
+        <i data-lucide="chevrons-up" class="w-4 h-4 text-royal-gold opacity-60 group-hover:opacity-100 transition"></i>
+      </button>
+
+      <button onclick="focusHotspot('durbar')" class="hotspot-btn text-left px-4 py-3 rounded-xl glass-panel text-xs font-medium text-slate-200 border-l-4 border-l-transparent transition-all duration-300 hover:bg-royal-gold/10 flex items-center justify-between group">
+        <span>03. Durbar Hall Facade</span>
+        <i data-lucide="columns" class="w-4 h-4 text-royal-gold opacity-60 group-hover:opacity-100 transition"></i>
+      </button>
+
+      <button onclick="focusHotspot('gate')" class="hotspot-btn text-left px-4 py-3 rounded-xl glass-panel text-xs font-medium text-slate-200 border-l-4 border-l-transparent transition-all duration-300 hover:bg-royal-gold/10 flex items-center justify-between group">
+        <span>04. Royal Courtyard Plaza</span>
+        <i data-lucide="shield" class="w-4 h-4 text-royal-gold opacity-60 group-hover:opacity-100 transition"></i>
+      </button>
+    </nav>
+
+    <!-- RIGHT CARD: Dynamic Landmark Insights -->
+    <aside id="info-card" class="pointer-events-auto self-end w-full max-w-sm glass-panel p-6 rounded-2xl shadow-2xl relative border-royal-border">
+      <div class="flex items-center justify-between mb-2">
+        <span id="card-tag" class="text-[10px] uppercase font-bold tracking-widest text-royal-gold bg-royal-gold/10 px-2.5 py-1 rounded-full">Indo-Saracenic</span>
+        <div class="flex items-center space-x-1 text-royal-gold">
+          <i data-lucide="star" class="w-3.5 h-3.5 fill-royal-gold"></i>
+          <span class="text-xs font-bold">4.9/5</span>
+        </div>
+      </div>
+      
+      <h2 id="card-title" class="font-serif text-lg font-bold text-royal-goldLight">Palace Front Elevation</h2>
+      <p id="card-desc" class="text-xs text-slate-300 mt-2 leading-relaxed">
+        Commissioned by the 24th Maharaja of Mysore in 1897. Designed by Henry Irwin combining Hindu, Mughal, Rajput, and Gothic styles with grand granite arches.
+      </p>
+
+      <div class="mt-4 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs">
+        <div>
+          <span class="block text-[10px] text-slate-400">Total Bulbs</span>
+          <span class="font-bold text-royal-gold font-serif">97,000+ Lights</span>
+        </div>
+        <div>
+          <span class="block text-[10px] text-slate-400">Tower Height</span>
+          <span class="font-bold text-royal-gold font-serif">145 Feet</span>
+        </div>
+        <div>
+          <span class="block text-[10px] text-slate-400">Construction</span>
+          <span class="font-bold text-royal-gold font-serif">1897 - 1912</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- BOTTOM CONTROLS: Experience Switchers -->
+    <footer class="w-full flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-auto pt-4">
+      
+      <!-- Interactive Guidance Help -->
+      <div class="flex items-center space-x-3 text-xs text-slate-400 glass-panel px-4 py-2 rounded-full">
+        <i data-lucide="mouse-pointer" class="w-3.5 h-3.5 text-royal-gold animate-bounce"></i>
+        <span>Click & Drag to Rotate • Scroll to Zoom • Right-Click to Pan</span>
+      </div>
+
+      <!-- Night Illumination Toggle (The Mysore Signature) -->
+      <div class="flex items-center space-x-4 glass-panel px-6 py-3 rounded-full border border-royal-border">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="moon" class="w-4 h-4 text-royal-goldLight"></i>
+          <span class="text-xs font-semibold tracking-wider uppercase text-slate-200">100k Lights Spectacle</span>
+        </div>
+        <button id="lightToggleBtn" onclick="togglePalaceIllumination()" class="w-12 h-6 bg-slate-700 rounded-full relative transition-colors duration-300 focus:outline-none">
+          <span id="lightToggleCircle" class="block w-4 h-4 bg-white rounded-full transition-transform duration-300 translate-x-1"></span>
+        </button>
+      </div>
+
+      <!-- Ambient Audio Tour Button -->
+      <button onclick="toggleAudio()" id="audioBtn" class="glass-panel text-royal-gold hover:text-white px-5 py-3 rounded-full flex items-center space-x-2 text-xs transition duration-300">
+        <i data-lucide="volume-2" id="audioIcon" class="w-4 h-4"></i>
+        <span id="audioText">Play Royal Sitar Ambient</span>
+      </button>
+    </footer>
+
+  </div>
+
+  <!-- BOOKING & HERITAGE MODAL (Glassmorphic Slide-over) -->
+  <div id="bookingModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-xl rounded-3xl p-8 relative border-royal-gold/40 shadow-2xl transform scale-95 transition-transform duration-300" id="modalCard">
+      <button onclick="toggleInfoModal()" class="absolute top-6 right-6 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+
+      <div class="w-12 h-12 rounded-full bg-royal-gold/20 flex items-center justify-center mb-4 text-royal-gold">
+        <i data-lucide="landmark" class="w-6 h-6"></i>
+      </div>
+
+      <h3 class="font-serif text-2xl font-bold text-royal-goldLight">Plan Your Royal Experience</h3>
+      <p class="text-xs text-slate-300 mt-1">Reserve guided VIP heritage walks & sound-and-light show seats.</p>
+
+      <div class="grid grid-cols-2 gap-4 mt-6">
+        <div class="p-4 rounded-xl border border-royal-border bg-black/40">
+          <span class="text-[10px] uppercase text-royal-gold font-bold">Standard Tour</span>
+          <p class="text-lg font-bold font-serif text-white mt-1">₹100 <span class="text-xs font-sans text-slate-400">/ adult</span></p>
+          <ul class="text-[11px] text-slate-300 mt-2 space-y-1">
+            <li>✓ Main Palace Entry</li>
+            <li>✓ Courtyard Access</li>
+          </ul>
+        </div>
+
+        <div class="p-4 rounded-xl border border-royal-gold bg-royal-gold/10 relative overflow-hidden">
+          <span class="absolute top-2 right-2 text-[9px] bg-royal-gold text-black px-2 py-0.5 rounded font-bold">POPULAR</span>
+          <span class="text-[10px] uppercase text-royal-goldLight font-bold">Royal VIP Illumination</span>
+          <p class="text-lg font-bold font-serif text-royal-goldLight mt-1">₹450 <span class="text-xs font-sans text-slate-400">/ person</span></p>
+          <ul class="text-[11px] text-slate-200 mt-2 space-y-1">
+            <li>✓ VIP Grand Stand</li>
+            <li>✓ Audio Guide + Museum</li>
+          </ul>
+        </div>
+      </div>
+
+      <button onclick="alert('Ticket checkout demo initiated. In production, this redirects to the payment gateway.'); toggleInfoModal();" class="w-full mt-6 gold-btn text-black font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl">
+        Proceed to Royal Concierge
+      </button>
+    </div>
+  </div>
+
+  <!-- Audio Synthesizer (Ambient Palace Drone) -->
+  <script>
+    let audioCtx = null;
+    let isPlaying = false;
+    let osc1, osc2, gainNode;
+
+    function toggleAudio() {
+      if(!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        osc1 = audioCtx.createOscillator();
+        osc2 = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+
+        // Indian Tanpura / Sitar drone harmonic tuning (D & A frequency)
+        osc1.frequency.setValueAtTime(146.83, audioCtx.currentTime); // D3
+        osc2.frequency.setValueAtTime(220.00, audioCtx.currentTime); // A3
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+
+        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc1.start();
+        osc2.start();
+        isPlaying = true;
+      } else {
+        if(isPlaying) {
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+          isPlaying = false;
+        } else {
+          gainNode.gain.exponentialRampToValueAtTime(0.05, audioCtx.currentTime + 0.5);
+          isPlaying = true;
+        }
+      }
+
+      document.getElementById('audioText').innerText = isPlaying ? "Mute Palace Ambient" : "Play Royal Sitar Ambient";
+      document.getElementById('audioIcon').setAttribute('data-lucide', isPlaying ? 'volume-x' : 'volume-2');
+      lucide.createIcons();
+    }
+  </script>
+
+  <!-- THREE.JS 3D PROCEDURAL ARCHITECTURE ENGINE -->
+  <script>
+    lucide.createIcons();
+
+    // Scene & Renderer Setup
+    const container = document.getElementById('webgl-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0a0e17, 0.006);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.set(0, 45, 140);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevent going under floor
+    controls.minDistance = 30;
+    controls.maxDistance = 220;
+    controls.target.set(0, 15, 0);
+
+    // MATERIALS PALETTE
+    const graniteMat = new THREE.MeshStandardMaterial({ color: 0x6e685f, roughness: 0.7, metalness: 0.1 });
+    const pinkMarbleMat = new THREE.MeshStandardMaterial({ color: 0x9b5d52, roughness: 0.5, metalness: 0.2 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xe6b800, roughness: 0.3, metalness: 0.85 });
+    const archMat = new THREE.MeshStandardMaterial({ color: 0xc49b72, roughness: 0.6 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x181e28, roughness: 0.4, metalness: 0.2 });
+    
+    // Palace Fairy Lights Materials (Off vs On)
+    const bulbMatOff = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.9 });
+    const bulbMatOn = new THREE.MeshBasicMaterial({ color: 0xffea88 });
+
+    const palaceGroup = new THREE.Group();
+    const fairyLights = [];
+
+    // 1. REFLECTIVE COURTYARD GROUND
+    const groundGeo = new THREE.PlaneGeometry(500, 500);
+    const ground = new THREE.Mesh(groundGeo, floorMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Grid details on floor
+    const grid = new THREE.GridHelper(400, 80, 0xd4af37, 0x1b2535);
+    grid.position.y = 0.02;
+    scene.add(grid);
+
+    // 2. MAIN PALACE PODIUM (Granite Base)
+    const podiumGeo = new THREE.BoxGeometry(110, 4, 50);
+    const podium = new THREE.Mesh(podiumGeo, graniteMat);
+    podium.position.y = 2;
+    podium.castShadow = true;
+    podium.receiveShadow = true;
+    palaceGroup.add(podium);
+
+    // 3. CENTRAL FACADE (Three tiers of Indo-Saracenic Arches)
+    const centralBlock = new THREE.Mesh(new THREE.BoxGeometry(50, 24, 36), archMat);
+    centralBlock.position.set(0, 16, 0);
+    centralBlock.castShadow = true;
+    palaceGroup.add(centralBlock);
+
+    // Arched Loggia columns (Instanced representation)
+    for(let i = -4; i <= 4; i++) {
+      if(i === 0) continue;
+      const colGeo = new THREE.CylinderGeometry(0.8, 0.9, 18, 12);
+      const col = new THREE.Mesh(colGeo, pinkMarbleMat);
+      col.position.set(i * 5.2, 11, 18.2);
+      col.castShadow = true;
+      palaceGroup.add(col);
+    }
+
+    // 4. ICONIC 5-TIER CENTRAL TOWER (145ft Kalasa)
+    const towerLevels = [
+      { w: 22, h: 8, d: 22, y: 30 },
+      { w: 18, h: 8, d: 18, y: 38 },
+      { w: 14, h: 6, d: 14, y: 45 }
+    ];
+
+    towerLevels.forEach(lvl => {
+      const box = new THREE.Mesh(new THREE.BoxGeometry(lvl.w, lvl.h, lvl.d), archMat);
+      box.position.y = lvl.y;
+      box.castShadow = true;
+      palaceGroup.add(box);
+    });
+
+    // 5. GOLDEN CENTRAL DOME (Kalasa Onion/Umbrella Dome)
+    const domeBaseGeo = new THREE.CylinderGeometry(6.5, 7, 3, 24);
+    const domeBase = new THREE.Mesh(domeBaseGeo, pinkMarbleMat);
+    domeBase.position.y = 49.5;
+    palaceGroup.add(domeBase);
+
+    const domeGeo = new THREE.SphereGeometry(6.8, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.6);
+    const mainDome = new THREE.Mesh(domeGeo, goldMat);
+    mainDome.position.y = 51;
+    mainDome.scale.set(1, 1.35, 1);
+    mainDome.castShadow = true;
+    palaceGroup.add(mainDome);
+
+    // Gold Kalasa Spire
+    const spireGeo = new THREE.ConeGeometry(0.8, 7, 16);
+    const spire = new THREE.Mesh(spireGeo, goldMat);
+    spire.position.y = 61.5;
+    palaceGroup.add(spire);
+
+    // 6. SYMMETRICAL WINGS & CORNER CHHATRI TOWERS
+    function createWing(side) {
+      const xOffset = side * 42;
+      
+      // Wing Block
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(34, 18, 32), archMat);
+      wing.position.set(xOffset, 13, 0);
+      wing.castShadow = true;
+      palaceGroup.add(wing);
+
+      // Corner Square Tower
+      const cornerTower = new THREE.Mesh(new THREE.BoxGeometry(10, 32, 10), pinkMarbleMat);
+      cornerTower.position.set(side * 54, 18, 14);
+      cornerTower.castShadow = true;
+      palaceGroup.add(cornerTower);
+
+      // Corner Pink Marble Chhatri Dome
+      const chhatriDome = new THREE.Mesh(new THREE.SphereGeometry(5.2, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), pinkMarbleMat);
+      chhatriDome.position.set(side * 54, 35, 14);
+      chhatriDome.scale.set(1, 1.25, 1);
+      chhatriDome.castShadow = true;
+      palaceGroup.add(chhatriDome);
+
+      // Spire on corner dome
+      const cornerSpire = new THREE.Mesh(spireGeo, goldMat);
+      cornerSpire.position.set(side * 54, 43, 14);
+      cornerSpire.scale.set(0.6, 0.6, 0.6);
+      palaceGroup.add(cornerSpire);
+    }
+    createWing(1);  // Right Wing
+    createWing(-1); // Left Wing
+
+    // 7. PALACE 100,000 FAIRY LIGHTS ARRAY (Contour String Lights)
+    const bulbGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+    const lightCoords = [];
+
+    // Horizontal outlines on facade tiers
+    [-52, 0, 52].forEach(xCenter => {
+      for(let x = -20; x <= 20; x += 2.5) {
+        lightCoords.push([xCenter + x, 4, 25.2]);
+        lightCoords.push([xCenter + x, 18, 18.2]);
+        lightCoords.push([xCenter + x, 25, 18.2]);
+      }
+    });
+
+    // Tower & Dome contours
+    for(let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+      const r = 6.9;
+      lightCoords.push([Math.cos(angle) * r, 51 + Math.sin(angle) * 3, Math.sin(angle) * r]);
+      lightCoords.push([54 + Math.cos(angle) * 5.2, 35, 14 + Math.sin(angle) * 5.2]);
+      lightCoords.push([-54 + Math.cos(angle) * 5.2, 35, 14 + Math.sin(angle) * 5.2]);
+    }
+
+    // Spawn Fairy Light Meshes
+    lightCoords.forEach(pos => {
+      const bulb = new THREE.Mesh(bulbGeometry, bulbMatOff);
+      bulb.position.set(pos[0], pos[1], pos[2]);
+      palaceGroup.add(bulb);
+      fairyLights.push(bulb);
+    });
+
+    scene.add(palaceGroup);
+
+    // 8. LIGHTING SETUP (Cinematic Royal Lighting)
+    const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.6);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xffebd0, 1.2);
+    sunLight.position.set(80, 100, 60);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.bias = -0.0001;
+    scene.add(sunLight);
+
+    // Night Illumination Grand PointLights
+    const nightPalaceLight = new THREE.PointLight(0xffb732, 0, 150);
+    nightPalaceLight.position.set(0, 30, 35);
+    scene.add(nightPalaceLight);
+
+    const nightLeftLight = new THREE.PointLight(0xffa500, 0, 100);
+    nightLeftLight.position.set(-54, 25, 20);
+    scene.add(nightLeftLight);
+
+    const nightRightLight = new THREE.PointLight(0xffa500, 0, 100);
+    nightRightLight.position.set(54, 25, 20);
+    scene.add(nightRightLight);
+
+    // 9. ANIMATED PARTICLES (Royal Golden Dust in the air)
+    const particleGeo = new THREE.BufferGeometry();
+    const particleCount = 250;
+    const posArray = new Float32Array(particleCount * 3);
+
+    for(let i = 0; i < particleCount * 3; i += 3) {
+      posArray[i] = (Math.random() - 0.5) * 180;
+      posArray[i+1] = Math.random() * 80 + 2;
+      posArray[i+2] = (Math.random() - 0.5) * 180;
+    }
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const particleMat = new THREE.PointsMaterial({ size: 0.4, color: 0xd4af37, transparent: true, opacity: 0.6 });
+    const particleSystem = new THREE.Points(particleGeo, particleMat);
+    scene.add(particleSystem);
+
+    // 10. INTERACTIVE CAMERA TOUR SYSTEM
+    const tourSpots = {
+      overview: {
+        camera: { x: 0, y: 55, z: 145 },
+        target: { x: 0, y: 18, z: 0 },
+        tag: "Indo-Saracenic Masterpiece",
+        title: "Grand Facade Elevation",
+        desc: "Designed by British architect Henry Irwin. Features seven expansive arches, granite towers, and deep pink marble domes."
+      },
+      dome: {
+        camera: { x: 0, y: 64, z: 45 },
+        target: { x: 0, y: 52, z: 0 },
+        tag: "Sacred Kalasa Spire",
+        title: "Central Golden Onion Dome",
+        desc: "The 145-foot central tower is crowned with a solid brass and gold leaf kalasa dome reflecting the Vijayanagara architectural legacy."
+      },
+      durbar: {
+        camera: { x: -28, y: 22, z: 40 },
+        target: { x: -10, y: 16, z: 10 },
+        tag: "Royal Ceremonial Hall",
+        title: "Diwan-e-Khas (Durbar Hall)",
+        desc: "The ornate pavilion where the Maharaja addressed royal assemblies, famed for painted ceilings and peacock stained-glass windows."
+      },
+      gate: {
+        camera: { x: 45, y: 12, z: 75 },
+        target: { x: 0, y: 8, z: 10 },
+        tag: "Palace Esplanade",
+        title: "Royal Courtyard & Parade Ground",
+        desc: "Sprawling stone-paved plaza that hosts the world-famous Mysore Dasara jumbo savari procession with caparisoned elephants."
+      }
+    };
+
+    function focusHotspot(key) {
+      const spot = tourSpots[key];
+      if(!spot) return;
+
+      // Update Nav Buttons
+      document.querySelectorAll('.hotspot-btn').forEach(btn => {
+        btn.classList.remove('active', 'border-l-royal-gold', 'bg-royal-gold/10');
+        btn.classList.add('border-l-transparent');
+      });
+      event.currentTarget.classList.add('active', 'border-l-royal-gold', 'bg-royal-gold/10');
+      event.currentTarget.classList.remove('border-l-transparent');
+
+      // Animate Camera & Controls with GSAP
+      gsap.to(camera.position, {
+        x: spot.camera.x,
+        y: spot.camera.y,
+        z: spot.camera.z,
+        duration: 2.2,
+        ease: "power3.inOut"
+      });
+
+      gsap.to(controls.target, {
+        x: spot.target.x,
+        y: spot.target.y,
+        z: spot.target.z,
+        duration: 2.0,
+        ease: "power3.inOut"
+      });
+
+      // Animate Info Card Text
+      gsap.to("#info-card", {
+        opacity: 0.3,
+        y: 10,
+        duration: 0.3,
+        onComplete: () => {
+          document.getElementById('card-tag').innerText = spot.tag;
+          document.getElementById('card-title').innerText = spot.title;
+          document.getElementById('card-desc').innerText = spot.desc;
+          gsap.to("#info-card", { opacity: 1, y: 0, duration: 0.4 });
+        }
+      });
+    }
+
+    // 11. DAY / NIGHT PALACE ILLUMINATION TOGGLE
+    let isIlluminated = false;
+
+    function togglePalaceIllumination() {
+      isIlluminated = !isIlluminated;
+      const btnCircle = document.getElementById('lightToggleCircle');
+      const lightStatus = document.getElementById('light-status-text');
+
+      if (isIlluminated) {
+        btnCircle.classList.add('translate-x-7', 'bg-royal-gold');
+        btnCircle.classList.remove('translate-x-1', 'bg-white');
+        lightStatus.innerText = "100k Illumination Active";
+        lightStatus.classList.add('text-royal-gold');
+
+        // Transition materials to glowing gold
+        fairyLights.forEach(b => b.material = bulbMatOn);
+
+        // Night atmosphere lighting adjustments
+        gsap.to(sunLight, { intensity: 0.08, duration: 1.5 });
+        gsap.to(ambientLight, { intensity: 0.25, duration: 1.5 });
+        gsap.to(nightPalaceLight, { intensity: 3.5, duration: 1.5 });
+        gsap.to(nightLeftLight, { intensity: 2.5, duration: 1.5 });
+        gsap.to(nightRightLight, { intensity: 2.5, duration: 1.5 });
+        gsap.to(scene.fog, { density: 0.009, duration: 1.5 });
+      } else {
+        btnCircle.classList.remove('translate-x-7', 'bg-royal-gold');
+        btnCircle.classList.add('translate-x-1', 'bg-white');
+        lightStatus.innerText = "Illumination Off";
+        lightStatus.classList.remove('text-royal-gold');
+
+        fairyLights.forEach(b => b.material = bulbMatOff);
+
+        gsap.to(sunLight, { intensity: 1.2, duration: 1.5 });
+        gsap.to(ambientLight, { intensity: 0.6, duration: 1.5 });
+        gsap.to(nightPalaceLight, { intensity: 0, duration: 1.5 });
+        gsap.to(nightLeftLight, { intensity: 0, duration: 1.5 });
+        gsap.to(nightRightLight, { intensity: 0, duration: 1.5 });
+        gsap.to(scene.fog, { density: 0.006, duration: 1.5 });
+      }
+    }
+
+    // 12. MODAL CONTROLS
+    let modalOpen = false;
+    function toggleInfoModal() {
+      modalOpen = !modalOpen;
+      const modal = document.getElementById('bookingModal');
+      const card = document.getElementById('modalCard');
+      if(modalOpen) {
+        modal.classList.remove('pointer-events-none', 'opacity-0');
+        modal.classList.add('opacity-100');
+        card.classList.remove('scale-95');
+        card.classList.add('scale-100');
+      } else {
+        modal.classList.add('pointer-events-none', 'opacity-0');
+        modal.classList.remove('opacity-100');
+        card.classList.remove('scale-100');
+        card.classList.add('scale-95');
+      }
+    }
+
+    // 13. RENDER LOOP
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsedTime = clock.getElapsedTime();
+
+      // Subtle ambient motion for palace float/particles
+      particleSystem.rotation.y = elapsedTime * 0.02;
+
+      // Slow idle rotation when not interacting
+      if (!controls.state || controls.state === -1) {
+        palaceGroup.rotation.y = Math.sin(elapsedTime * 0.1) * 0.03;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Responsive Resize Handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+  </script>
+</body>
+</html>
