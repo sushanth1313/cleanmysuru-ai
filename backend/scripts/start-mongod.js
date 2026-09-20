@@ -36,6 +36,10 @@ function isPortOpen(port, host = '127.0.0.1') {
 }
 
 async function ensureMongod() {
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+
   const isOpen = await isPortOpen(DB_PORT);
   if (isOpen) {
     console.log(`[MONGOD] MongoDB is already running on port ${DB_PORT}`);
@@ -43,8 +47,8 @@ async function ensureMongod() {
   }
 
   if (!fs.existsSync(MONGOD_BIN)) {
-    console.error(`[MONGOD] Error: mongod binary not found at ${MONGOD_BIN}`);
-    process.exit(1);
+    console.warn(`[MONGOD] Notice: local mongod binary not found at ${MONGOD_BIN}. Skipping local mongod spawn.`);
+    return;
   }
 
   if (!fs.existsSync(DB_PATH)) {
