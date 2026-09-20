@@ -1,0 +1,12 @@
+.git
+.next
+node_modules
+**/node_modules
+backend/data
+backend/uploads
+ui-extracted
+OmniRoute
+*.zip
+*.pdf
+.env
+.env.*
