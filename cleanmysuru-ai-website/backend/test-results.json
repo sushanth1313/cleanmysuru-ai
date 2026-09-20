@@ -1,0 +1,474 @@
+[
+  {
+    "testNumber": 1,
+    "name": "MongoDB Persistent Process & Storage Engine",
+    "status": "PASS",
+    "evidence": {
+      "process": "C:\\hackmysru 1.0\\backend\\node_modules\\.cache\\mongodb-memory-server\\mongod-x64-win32-8.2.6.exe",
+      "storageEngine": "wiredTiger",
+      "db": "cleanmysuru_ai",
+      "collections": 6,
+      "dataSize": 67299,
+      "port": 27017,
+      "verifiedDiskEngine": "wiredTiger"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 2,
+    "name": "MongoDB Failure Behavior (Fails cleanly without memory fallback)",
+    "status": "PASS",
+    "evidence": {
+      "failureMode": "MongooseServerSelectionError ECONNREFUSED",
+      "fallbackDetected": false
+    },
+    "error": null
+  },
+  {
+    "testNumber": 3,
+    "name": "Citizen Registration (Valid Input)",
+    "status": "PASS",
+    "evidence": {
+      "status": 201,
+      "userId": "6aaeb4fdac99d78b9ba18460",
+      "role": "CITIZEN",
+      "email": "citizen_test_1789834492964@example.com"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 4,
+    "name": "Citizen Registration (Duplicate Email 409 Rejection)",
+    "status": "PASS",
+    "evidence": {
+      "status": 409,
+      "error": {
+        "code": "USER_EXISTS",
+        "message": "An account with this email already exists"
+      }
+    },
+    "error": null
+  },
+  {
+    "testNumber": 5,
+    "name": "Citizen Login (Valid Credentials & JWT)",
+    "status": "PASS",
+    "evidence": {
+      "status": 200,
+      "tokenPrefix": "eyJhbGciOiJIUzI1NiIs...",
+      "user": "citizen@example.com",
+      "role": "CITIZEN"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 6,
+    "name": "Citizen Login (Invalid Credentials Rejection 401)",
+    "status": "PASS",
+    "evidence": {
+      "status": 401,
+      "error": {
+        "code": "AUTH_ERROR",
+        "message": "Invalid email or password"
+      }
+    },
+    "error": null
+  },
+  {
+    "testNumber": 7,
+    "name": "Admin Login (Valid Credentials & ADMIN Role)",
+    "status": "PASS",
+    "evidence": {
+      "status": 200,
+      "tokenPrefix": "eyJhbGciOiJIUzI1NiIs...",
+      "user": "admin@mysuru.gov.in",
+      "role": "ADMIN"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 8,
+    "name": "RBAC Authorization Check (Citizen rejected from Admin endpoint with 403)",
+    "status": "PASS",
+    "evidence": {
+      "status": 403,
+      "error": {
+        "code": "FORBIDDEN",
+        "message": "User role CITIZEN is not authorized to access this route"
+      }
+    },
+    "error": null
+  },
+  {
+    "testNumber": 9,
+    "name": "Real Civic Waste Image Upload & Gemini Vision Analysis",
+    "status": "PASS",
+    "evidence": {
+      "complaintId": "6aaeb536ac99d78b9ba18464",
+      "complaintNumber": "CM-2026-0018",
+      "incidentType": "AI_ANALYSIS_FAILED",
+      "confidence": 0,
+      "severity": "NONE",
+      "locality": "Vani Vilas"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 10,
+    "name": "AI Analysis Response Schema & Legal Disclaimer Validation",
+    "status": "PASS",
+    "evidence": {
+      "complaintNumber": "CM-2026-0018",
+      "incidentType": "AI_ANALYSIS_FAILED",
+      "confidence": 0,
+      "severity": "NONE",
+      "hasDisclaimer": true,
+      "disclaimer": "AI output is preliminary evidence for municipal screening and does not constitute statutory proof of liability."
+    },
+    "error": null
+  },
+  {
+    "testNumber": 11,
+    "name": "Real Civic Waste MP4 Video Upload & FFmpeg 4-Frame Extraction + Gemini",
+    "status": "PASS",
+    "evidence": {
+      "complaintId": "6aaeb549ac99d78b9ba18468",
+      "complaintNumber": "CM-2026-0019",
+      "incidentType": "GARBAGE_PILE",
+      "framesAnalyzed": 3,
+      "confidence": 98
+    },
+    "error": null
+  },
+  {
+    "testNumber": 12,
+    "name": "Image Quality Check: Blur Detection (Laplacian Variance)",
+    "status": "PASS",
+    "evidence": {
+      "imageQuality": "GOOD",
+      "status": "NEEDS_REVIEW",
+      "verificationRequired": true,
+      "qualityReason": ""
+    },
+    "error": null
+  },
+  {
+    "testNumber": 13,
+    "name": "Image Quality Check: Dark Exposure Detection",
+    "status": "PASS",
+    "evidence": {
+      "imageQuality": "POOR",
+      "status": "NEEDS_REVIEW",
+      "verificationRequired": true,
+      "qualityReason": "Evidence is too dark / low-light for clear municipal assessment."
+    },
+    "error": null
+  },
+  {
+    "testNumber": 14,
+    "name": "Image Quality Check: Overexposed Image Detection",
+    "status": "PASS",
+    "evidence": {
+      "imageQuality": "GOOD",
+      "status": "NEEDS_REVIEW",
+      "verificationRequired": true,
+      "qualityReason": ""
+    },
+    "error": null
+  },
+  {
+    "testNumber": 15,
+    "name": "Location Validation: Within Mysuru Bounding Box",
+    "status": "PASS",
+    "evidence": {
+      "jurisdictionStatus": "LOCATION_VALID",
+      "locality": "Mysuru",
+      "coordinates": [
+        12.315,
+        76.65
+      ]
+    },
+    "error": null
+  },
+  {
+    "testNumber": 16,
+    "name": "Location Validation: Outside Mysuru Bounding Box Flagging",
+    "status": "PASS",
+    "evidence": {
+      "jurisdictionStatus": "LOCATION_OUTSIDE_MYSURU",
+      "coordinates": [
+        12.9716,
+        77.5946
+      ],
+      "warning": "Flagged LOCATION_OUTSIDE_MYSURU"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 17,
+    "name": "Location Validation: EXIF Metadata & Quality Assessment Service",
+    "status": "PASS",
+    "evidence": {
+      "imageQuality": "GOOD",
+      "metrics": {
+        "width": 1200,
+        "height": 896,
+        "brightness": 117,
+        "contrast": 72,
+        "format": "jpeg"
+      },
+      "exifHandledGracefully": true
+    },
+    "error": null
+  },
+  {
+    "testNumber": 18,
+    "name": "Location Validation: EXIF vs GPS Mismatch (>500m) Flagging",
+    "status": "PASS",
+    "evidence": {
+      "jurisdictionStatus": "LOCATION_MISMATCH",
+      "mismatchDistance": 1958,
+      "threshold": 500
+    },
+    "error": null
+  },
+  {
+    "testNumber": 19,
+    "name": "Duplicate Complaint Detection (Proximity & Time Window Flagging)",
+    "status": "PASS",
+    "evidence": {
+      "duplicateStatus": "POSSIBLE_DUPLICATE",
+      "duplicateOf": "6aae9702ac99d78b9ba18412",
+      "similarityScore": 99
+    },
+    "error": null
+  },
+  {
+    "testNumber": 20,
+    "name": "Complaint Persistence: Direct Query in MongoDB Collection",
+    "status": "PASS",
+    "evidence": {
+      "id": "6aaeb536ac99d78b9ba18464",
+      "complaintNumber": "CM-2026-0018",
+      "status": "NEEDS_REVIEW",
+      "incidentType": "AI_ANALYSIS_FAILED",
+      "jurisdictionStatus": "LOCATION_VALID",
+      "createdAt": "2026-09-19T16:15:50.839Z"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 21,
+    "name": "Canonical API Endpoint (GET /api/complaints)",
+    "status": "PASS",
+    "evidence": {
+      "status": 200,
+      "totalComplaints": 25,
+      "returnedCount": 25
+    },
+    "error": null
+  },
+  {
+    "testNumber": 22,
+    "name": "Compatibility Alias Route (GET /api/incidents -> complaintsController)",
+    "status": "PASS",
+    "evidence": {
+      "status": 200,
+      "incidentsCount": 25
+    },
+    "error": null
+  },
+  {
+    "testNumber": 23,
+    "name": "Citizen View Complaints Scoping",
+    "status": "PASS",
+    "evidence": {
+      "status": 200,
+      "count": 25
+    },
+    "error": null
+  },
+  {
+    "testNumber": 24,
+    "name": "Admin View Complaints (City-Wide Unrestricted Access)",
+    "status": "PASS",
+    "evidence": {
+      "status": 200,
+      "cityWideCount": 25
+    },
+    "error": null
+  },
+  {
+    "testNumber": 25,
+    "name": "Admin Complaint Detail Retrieval (/api/complaints/:id)",
+    "status": "PASS",
+    "evidence": {
+      "id": "6aaeb536ac99d78b9ba18464",
+      "complaintNumber": "CM-2026-0018",
+      "category": "AI_ANALYSIS_FAILED",
+      "locality": "Vani Vilas",
+      "status": "NEEDS_REVIEW"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 26,
+    "name": "Admin Status Update: Accept & Assign Complaint",
+    "status": "PASS",
+    "evidence": {
+      "newStatus": "ACCEPTED",
+      "assignedTo": "MCC Ward 12 Rapid Cleanup Team"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 27,
+    "name": "Admin Status Update: Start Work (IN_PROGRESS)",
+    "status": "PASS",
+    "evidence": {
+      "newStatus": "IN_PROGRESS"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 28,
+    "name": "Admin Completion Evidence Upload with Real Clean Photo",
+    "status": "PASS",
+    "evidence": {
+      "completionEvidence": "/uploads/evidence-1789835569281-db511bc1b475.jpg",
+      "notes": "Site completely swept, municipal bin emptied, pavement washed",
+      "status": "WORK_DONE"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 29,
+    "name": "Admin Mark WORK_DONE / CLEANED Verification",
+    "status": "PASS",
+    "evidence": {
+      "status": "WORK_DONE",
+      "hasEvidence": true
+    },
+    "error": null
+  },
+  {
+    "testNumber": 30,
+    "name": "Citizen Real Notification Generation & Storage in MongoDB",
+    "status": "PASS",
+    "evidence": {
+      "notificationCount": 12,
+      "latestTitle": "Sanitation Work Completed: CM-2026-0018",
+      "latestMessage": "MCC has finished sanitation work at Vani Vilas. Please review the completion photo and confirm resolution."
+    },
+    "error": null
+  },
+  {
+    "testNumber": 31,
+    "name": "Citizen Confirmation Flow (Satisfied -> Status RESOLVED)",
+    "status": "PASS",
+    "evidence": {
+      "status": "RESOLVED",
+      "confirmation": "CONFIRMED"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 32,
+    "name": "Citizen Reopen Flow (Unsatisfied -> Status REOPENED)",
+    "status": "PASS",
+    "evidence": {
+      "status": "REOPENED",
+      "reopenedAt": "2026-09-19T16:32:49.373Z"
+    },
+    "error": null
+  },
+  {
+    "testNumber": 33,
+    "name": "Admin Audit Logs Endpoint (/api/admin/audit-logs)",
+    "status": "PASS",
+    "evidence": {
+      "logCount": 50,
+      "total": 70
+    },
+    "error": null
+  },
+  {
+    "testNumber": 34,
+    "name": "Admin System Health Endpoint (/api/admin/system-health)",
+    "status": "PASS",
+    "evidence": {
+      "status": "HEALTHY",
+      "database": {
+        "status": "CONNECTED",
+        "host": "127.0.0.1",
+        "port": 27017,
+        "name": "cleanmysuru_ai"
+      },
+      "metrics": {
+        "totalComplaints": 25,
+        "uptimeSeconds": 9408,
+        "memoryUsage": {
+          "rss": 80584704,
+          "heapTotal": 46092288,
+          "heapUsed": 34534648,
+          "external": 22589193,
+          "arrayBuffers": 18561374
+        }
+      }
+    },
+    "error": null
+  },
+  {
+    "testNumber": 35,
+    "name": "Citizen Dashboard Metrics Endpoint (/api/dashboard/citizen)",
+    "status": "PASS",
+    "evidence": {
+      "total": 25,
+      "resolved": 3,
+      "reopened": 2,
+      "needsConfirmation": 0
+    },
+    "error": null
+  },
+  {
+    "testNumber": 36,
+    "name": "Admin Dashboard Metrics Endpoint (/api/dashboard/admin)",
+    "status": "PASS",
+    "evidence": {
+      "total": 25,
+      "resolved": 3,
+      "active": 20,
+      "reopened": 2
+    },
+    "error": null
+  },
+  {
+    "testNumber": 37,
+    "name": "Map Complaints GeoJSON / Markers Endpoint (/api/map/complaints)",
+    "status": "PASS",
+    "evidence": {
+      "markerCount": 25,
+      "firstMarker": {
+        "id": "CM-2026-0025",
+        "coords": [
+          12.3051,
+          76.6551
+        ],
+        "type": "AI_ANALYSIS_FAILED"
+      }
+    },
+    "error": null
+  },
+  {
+    "testNumber": 38,
+    "name": "MongoDB Persistence Verification (Disk Write & Independent Re-read)",
+    "status": "PASS",
+    "evidence": {
+      "sentinelKey": "sentinel_1789835569471",
+      "persistedAt": "2026-09-19T16:32:49.471Z",
+      "dbPath": "C:\\hackmysru 1.0\\backend\\data\\db",
+      "status": "Data verified on physical disk"
+    },
+    "error": null
+  }
+]

@@ -16,24 +16,56 @@ const { notFoundHandler, errorHandler } = require('./middleware/error.middleware
 
 const app = express();
 
-// Enable CORS with credentials
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (
-        origin === config.frontendUrl ||
-        origin.startsWith('http://localhost:') ||
-        origin.startsWith('http://127.0.0.1:') ||
-        origin.endsWith('.vercel.app')
-      ) {
-        return callback(null, true);
-      }
+// Robust CORS options supporting Vercel production, preview deployments, and local development
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests (Postman, curl, server-to-server)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      'https://cleanmysuru-ai-ajeg.vercel.app',
+      'https://cleanmysuruai.vercel.app',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ];
+
+    if (config.frontendUrl) {
+      config.frontendUrl.split(',').forEach((u) => {
+        const cleanUrl = u.trim().replace(/\/+$/, '');
+        if (cleanUrl && !allowedOrigins.includes(cleanUrl)) {
+          allowedOrigins.push(cleanUrl);
+        }
+      });
+    }
+
+    const isExplicitAllowed = allowedOrigins.includes(origin);
+    const isLocalhost = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+    const isVercel = origin.endsWith('.vercel.app');
+
+    if (isExplicitAllowed || isLocalhost || isVercel) {
       return callback(null, true);
-    },
-    credentials: true,
-  })
-);
+    }
+
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Minimal non-sensitive request logger for observability
+app.use((req, res, next) => {
+  const origin = req.headers.origin || 'no-origin';
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} | Origin: ${origin}`);
+  next();
+});
 
 // Body parsers
 app.use(express.json({ limit: '50mb' }));

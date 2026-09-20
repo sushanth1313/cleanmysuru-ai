@@ -32,8 +32,19 @@ const seedDefaultUsers = async () => {
 };
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cleanmysuru_ai';
-  const isLocal = uri.includes('127.0.0.1') || uri.includes('localhost');
+  let uri = (process.env.MONGODB_URI || '').trim().replace(/^["']|["']$/g, '');
+  const isLocal = !uri || uri.includes('127.0.0.1') || uri.includes('localhost');
+
+  if (!uri) {
+    uri = 'mongodb://127.0.0.1:27017/cleanmysuru_ai';
+  } else if (uri.startsWith('mongodb+srv://') || uri.startsWith('mongodb://')) {
+    // Ensure default database name exists if omitted from Atlas connection string
+    if (/\.mongodb\.net\/\?/.test(uri)) {
+      uri = uri.replace(/\.mongodb\.net\/\?/, '.mongodb.net/cleanmysuru_ai?');
+    } else if (/\.mongodb\.net\/?$/.test(uri)) {
+      uri = uri.replace(/\.mongodb\.net\/?$/, '.mongodb.net/cleanmysuru_ai');
+    }
+  }
 
   // If in production and MONGODB_URI is not provided or points to localhost, log clear instructions
   if (process.env.NODE_ENV === 'production' && (!process.env.MONGODB_URI || isLocal)) {
@@ -55,7 +66,7 @@ const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,
     });
     logger.info(`Persistent MongoDB Connected: ${conn.connection.host}:${conn.connection.port}/${conn.connection.name}`);
     await seedDefaultUsers();

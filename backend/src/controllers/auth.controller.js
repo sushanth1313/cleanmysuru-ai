@@ -11,14 +11,24 @@ const generateToken = (id) => {
   });
 };
 
+const isProductionEnv = () => {
+  return (
+    process.env.NODE_ENV === 'production' ||
+    process.env.RENDER === 'true' ||
+    Boolean(process.env.RENDER_EXTERNAL_URL) ||
+    (config.frontendUrl && config.frontendUrl.startsWith('https://'))
+  );
+};
+
 const sendTokenResponse = (user, statusCode, res) => {
   const token = generateToken(user._id);
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = isProductionEnv();
   const options = {
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
+    path: '/',
   };
   const userData = {
     id: user._id,
@@ -47,6 +57,16 @@ exports.register = async (req, res) => {
       return sendError(res, 'VALIDATION_ERROR', 'Password must be at least 6 characters', 400);
     }
 
+    if (require('mongoose').connection.readyState !== 1) {
+      logger.error('Registration attempted while database is disconnected (readyState: ' + require('mongoose').connection.readyState + ')');
+      return sendError(
+        res,
+        'DATABASE_UNAVAILABLE',
+        'Database connection is unavailable. Please ensure MongoDB Atlas Network Access has 0.0.0.0/0 whitelisted and credentials are correct.',
+        503
+      );
+    }
+
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return sendError(res, 'USER_EXISTS', 'An account with this email already exists', 409);
@@ -72,8 +92,22 @@ exports.register = async (req, res) => {
     
     sendTokenResponse(user, 201, res);
   } catch (error) {
-    logger.error('Register error', error);
-    sendError(res, 'SERVER_ERROR', 'Registration failed', 500);
+    logger.error('Register error:', error);
+    if (error.code === 11000) {
+      return sendError(res, 'USER_EXISTS', 'An account with this email already exists', 409);
+    }
+    if (error.name === 'ValidationError') {
+      return sendError(res, 'VALIDATION_ERROR', error.message, 400);
+    }
+    if (error.name === 'MongooseServerSelectionError' || error.name === 'MongooseError') {
+      return sendError(
+        res,
+        'DATABASE_UNAVAILABLE',
+        'Database connection failed: ' + error.message,
+        503
+      );
+    }
+    sendError(res, 'SERVER_ERROR', error.message || 'Registration failed', 500);
   }
 };
 
@@ -82,6 +116,16 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
       return sendError(res, 'VALIDATION_ERROR', 'Please provide email and password', 400);
+    }
+
+    if (require('mongoose').connection.readyState !== 1) {
+      logger.error('Login attempted while database is disconnected (readyState: ' + require('mongoose').connection.readyState + ')');
+      return sendError(
+        res,
+        'DATABASE_UNAVAILABLE',
+        'Database connection is unavailable. Please ensure MongoDB Atlas Network Access has 0.0.0.0/0 whitelisted and credentials are correct.',
+        503
+      );
     }
     
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
@@ -109,8 +153,16 @@ exports.login = async (req, res) => {
     
     sendTokenResponse(user, 200, res);
   } catch (error) {
-    logger.error('Login error', error);
-    sendError(res, 'SERVER_ERROR', 'Login failed', 500);
+    logger.error('Login error:', error);
+    if (error.name === 'MongooseServerSelectionError' || error.name === 'MongooseError') {
+      return sendError(
+        res,
+        'DATABASE_UNAVAILABLE',
+        'Database connection failed: ' + error.message,
+        503
+      );
+    }
+    sendError(res, 'SERVER_ERROR', error.message || 'Login failed', 500);
   }
 };
 
@@ -127,12 +179,13 @@ exports.logout = async (req, res) => {
       });
     }
 
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie('jwt', 'none', {
-      expires: new Date(Date.now() + 5 * 1000),
+    const isProd = isProductionEnv();
+    res.cookie('jwt', '', {
+      expires: new Date(0),
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax',
+      path: '/',
     });
     sendSuccess(res, {}, 'Logged out successfully');
   } catch (error) {

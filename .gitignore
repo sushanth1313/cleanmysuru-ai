@@ -30,3 +30,5 @@ ui-extracted/
 OmniRoute/
 *.zip
 *.pdf
+.vercel
+.env*

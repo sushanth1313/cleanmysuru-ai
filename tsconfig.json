@@ -29,5 +29,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "OmniRoute", "backend", "ui-extracted", "ui"]
+  "exclude": ["node_modules", "OmniRoute", "backend", "ui-extracted", "ui", "cleanmysuru-ai-website"]
 }

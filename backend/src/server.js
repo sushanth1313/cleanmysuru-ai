@@ -18,20 +18,32 @@ server.on('error', (err) => {
   }
 });
 
-// Connect to MongoDB
-connectDB()
-  .then(() => {
+// Connect to MongoDB with automatic retry in production
+let isConnecting = false;
+const startDBConnection = async () => {
+  if (isConnecting) return;
+  isConnecting = true;
+  try {
+    await connectDB();
     logger.info('Database connection established successfully.');
-  })
-  .catch((err) => {
-    logger.error('Database connection failed during startup:', err.message);
+  } catch (err) {
+    logger.error('Database connection failed:', err.message);
     if (process.env.NODE_ENV !== 'production') {
       logger.error('Exiting local dev because persistent local MongoDB is required.');
       process.exit(1);
     } else {
-      logger.warn('Production server remaining alive for health checks. Please check MONGODB_URI in Render dashboard.');
+      logger.warn('Production server will retry MongoDB connection in 5 seconds...');
+      setTimeout(() => {
+        isConnecting = false;
+        startDBConnection();
+      }, 5000);
+      return;
     }
-  });
+  }
+  isConnecting = false;
+};
+
+startDBConnection();
 
 // Graceful shutdown handling
 const shutdown = async () => {
