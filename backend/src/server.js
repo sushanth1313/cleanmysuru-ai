@@ -1,6 +1,6 @@
 const app = require('./app');
 const config = require('./config');
-const connectDB = require('./config/db');
+const { connectDB } = require('./config/db');
 const logger = require('./utils/logger');
 
 const host = '0.0.0.0';
