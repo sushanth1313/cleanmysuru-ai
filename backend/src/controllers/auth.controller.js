@@ -13,11 +13,12 @@ const generateToken = (id) => {
 
 const sendTokenResponse = (user, statusCode, res) => {
   const token = generateToken(user._id);
+  const isProd = process.env.NODE_ENV === 'production';
   const options = {
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
   };
   const userData = {
     id: user._id,
@@ -126,9 +127,12 @@ exports.logout = async (req, res) => {
       });
     }
 
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie('jwt', 'none', {
       expires: new Date(Date.now() + 5 * 1000),
       httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
     });
     sendSuccess(res, {}, 'Logged out successfully');
   } catch (error) {

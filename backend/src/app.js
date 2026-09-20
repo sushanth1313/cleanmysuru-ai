@@ -24,7 +24,8 @@ app.use(
       if (
         origin === config.frontendUrl ||
         origin.startsWith('http://localhost:') ||
-        origin.startsWith('http://127.0.0.1:')
+        origin.startsWith('http://127.0.0.1:') ||
+        origin.endsWith('.vercel.app')
       ) {
         return callback(null, true);
       }
