@@ -5,8 +5,9 @@ const logger = require('./utils/logger');
 
 // Connect to DB before starting server
 connectDB().then(() => {
-  const server = app.listen(config.port, () => {
-    logger.info(`CleanMysuru AI Backend running on http://localhost:${config.port}`);
+  const host = '0.0.0.0';
+  const server = app.listen(config.port, host, () => {
+    logger.info(`CleanMysuru AI Backend running on http://${host}:${config.port}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     logger.info(`Upload directory: ${config.upload.dir}`);
   });

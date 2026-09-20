@@ -33,13 +33,21 @@ const seedDefaultUsers = async () => {
 };
 
 const connectDB = async () => {
-  // Ensure local persistent mongod process is running
-  await ensureMongod();
-
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cleanmysuru_ai';
+  const isLocal = uri.includes('127.0.0.1') || uri.includes('localhost');
+
+  // Only spawn local mongod on local development environment
+  if (isLocal && process.env.NODE_ENV !== 'production') {
+    try {
+      await ensureMongod();
+    } catch (err) {
+      logger.warn(`Local mongod check notice: ${err.message}`);
+    }
+  }
+
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
     });
     logger.info(`Persistent MongoDB Connected: ${conn.connection.host}:${conn.connection.port}/${conn.connection.name}`);
     await seedDefaultUsers();
