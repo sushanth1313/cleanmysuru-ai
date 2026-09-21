@@ -23,6 +23,8 @@ function getHealth(req, res) {
       status: readyStates[readyState] || 'unknown',
       host: mongoose.connection.host || dbDiagnostics.sanitizedHost || null,
       database: mongoose.connection.name || dbDiagnostics.databaseName || null,
+      username: dbDiagnostics.username || null,
+      recoveredWithFallback: dbDiagnostics.recoveredWithFallback || false,
       sourceEnv: dbDiagnostics.sourceEnv || null,
       errorType: dbDiagnostics.lastError?.name || null,
       errorCode: dbDiagnostics.lastError?.code || null,

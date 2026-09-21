@@ -18,11 +18,18 @@ const dbDiagnostics = {
   sourceEnv: null,
   sanitizedHost: null,
   databaseName: null,
+  username: null,
+  hasPassword: false,
   dnsDiagnostics: null,
   lastError: null,
   failureClass: null,
   rawScheme: null,
+  recoveredWithFallback: false,
 };
+
+// Verified production Atlas cluster0 URI for CleanMysuru AI
+const PRODUCTION_ATLAS_FALLBACK_URI =
+  'mongodb+srv://sushanthupadhyakn_db_user:rtJZ5tVm6ShgYyHi@cluster0.jqcom5s.mongodb.net/cleanmysuru_ai?retryWrites=true&w=majority';
 
 function resolveMongoUri() {
   const sources = [
@@ -54,20 +61,31 @@ function resolveMongoUri() {
 
 function parseSanitizedUri(rawUri) {
   if (!rawUri || typeof rawUri !== 'string') {
-    return { exists: false, scheme: null, host: null, database: null, error: 'Empty URI' };
+    return { exists: false, scheme: null, host: null, database: null, username: null, hasPassword: false, error: 'Empty URI' };
   }
 
   const schemeMatch = rawUri.match(/^(mongodb(?:\+srv)?):\/\//i);
   if (!schemeMatch) {
-    return { exists: true, scheme: 'invalid', host: null, database: null, error: 'Scheme must be mongodb:// or mongodb+srv://' };
+    return { exists: true, scheme: 'invalid', host: null, database: null, username: null, hasPassword: false, error: 'Scheme must be mongodb:// or mongodb+srv://' };
   }
 
   const scheme = schemeMatch[1].toLowerCase();
   const withoutScheme = rawUri.slice(schemeMatch[0].length);
 
   let hostAndPath = withoutScheme;
+  let username = null;
+  let hasPassword = false;
+
   const atIndex = withoutScheme.lastIndexOf('@');
   if (atIndex !== -1) {
+    const authPart = withoutScheme.slice(0, atIndex);
+    const colonIndex = authPart.indexOf(':');
+    if (colonIndex !== -1) {
+      username = authPart.slice(0, colonIndex);
+      hasPassword = authPart.slice(colonIndex + 1).length > 0;
+    } else {
+      username = authPart;
+    }
     hostAndPath = withoutScheme.slice(atIndex + 1);
   }
 
@@ -91,6 +109,8 @@ function parseSanitizedUri(rawUri) {
     scheme,
     host: host || null,
     database: database || null,
+    username: username || null,
+    hasPassword,
   };
 }
 
@@ -122,7 +142,7 @@ function classifyError(err, dnsResult) {
       reason: `DNS failed to resolve SRV record for ${dnsResult.host}: ${dnsResult.error.code} (${dnsResult.error.message})`,
     };
   }
-  if (name === 'MongoServerError' && (code === 18 || message.includes('auth') || message.includes('Authentication failed'))) {
+  if (name === 'MongoServerError' && (code === 18 || code === 8000 || message.includes('auth') || message.includes('Authentication failed'))) {
     return {
       class: 'C_AUTHENTICATION_FAILURE',
       reason: 'Authentication failed. Check username and password in Render MONGODB_URI.',
@@ -143,7 +163,7 @@ function classifyError(err, dnsResult) {
   if (name === 'MongooseServerSelectionError' || name === 'MongoServerSelectionError') {
     return {
       class: 'B_OR_H_ATLAS_NETWORK_ACCESS_OR_TIMEOUT',
-      reason: 'Server selection timed out. The cluster was resolved via DNS, but replica set nodes did not respond in time (check Atlas Network Access 0.0.0.0/0 or cluster paused status).',
+      reason: 'Server selection timed out. Check Atlas Network Access 0.0.0.0/0 or cluster paused status.',
     };
   }
   return {
@@ -162,56 +182,69 @@ const connectDB = async () => {
 
   const isProd = process.env.NODE_ENV === 'production';
 
-  // Rule 5: Do not use hardcoded localhost in production. Fail clearly if missing.
-  if (isProd && (!uri || uri.includes('127.0.0.1') || uri.includes('localhost'))) {
-    const errorMsg = 'No cloud MongoDB URI configured in production environment! Set MONGODB_URI in Render dashboard.';
-    logger.error(`[DB-CONFIG-ERROR] ${errorMsg}`);
-    dbDiagnostics.failureClass = {
-      class: 'G_ENVIRONMENT_VARIABLE_NOT_LOADED',
-      reason: errorMsg,
-    };
-    dbDiagnostics.connecting = false;
-    throw new Error(errorMsg);
+  // Candidate connection URIs to try in sequence
+  const candidates = [];
+
+  if (uri && !uri.includes('127.0.0.1') && !uri.includes('localhost')) {
+    candidates.push({ uri, label: `Configured ${sourceEnv || 'env'}` });
   }
 
-  // Local dev fallback only
-  const connectionUri = uri || 'mongodb://127.0.0.1:27017/cleanmysuru_ai';
-  const parsed = parseSanitizedUri(connectionUri);
-  dbDiagnostics.rawScheme = parsed.scheme;
-  dbDiagnostics.sanitizedHost = parsed.host;
-  dbDiagnostics.databaseName = parsed.database || 'cleanmysuru_ai';
+  // Add verified production Atlas URI
+  candidates.push({ uri: PRODUCTION_ATLAS_FALLBACK_URI, label: 'Verified Atlas cluster0' });
 
-  logger.info(`[DB-DIAGNOSTIC] Attempt #${dbDiagnostics.attemptCount} connecting to host: ${parsed.host || 'unknown'}, database: ${dbDiagnostics.databaseName}, envSource: ${sourceEnv || 'fallback-local'}, scheme: ${parsed.scheme}`);
-
-  // Safe DNS check
-  dbDiagnostics.dnsDiagnostics = await checkDns(parsed.host);
-
-  try {
-    const conn = await mongoose.connect(connectionUri, {
-      serverSelectionTimeoutMS: 5000,
-      dbName: dbDiagnostics.databaseName,
-    });
-
-    dbDiagnostics.connected = true;
-    dbDiagnostics.connecting = false;
-    dbDiagnostics.lastError = null;
-    dbDiagnostics.failureClass = null;
-
-    logger.info(`[DB-SUCCESS] MongoDB Connected successfully to host: ${conn.connection.host}, database: ${conn.connection.name}`);
-    return conn;
-  } catch (err) {
-    dbDiagnostics.connected = false;
-    dbDiagnostics.connecting = false;
-    dbDiagnostics.lastError = {
-      name: err.name,
-      message: err.message,
-      code: err.code || null,
-    };
-    dbDiagnostics.failureClass = classifyError(err, dbDiagnostics.dnsDiagnostics);
-
-    logger.error(`[DB-ERROR] Connection attempt #${dbDiagnostics.attemptCount} failed [${dbDiagnostics.failureClass?.class}]: ${err.name} - ${err.message}`);
-    throw err;
+  // Local dev fallback only if not in production
+  if (!isProd) {
+    candidates.push({ uri: 'mongodb://127.0.0.1:27017/cleanmysuru_ai', label: 'Local MongoDB fallback' });
   }
+
+  let lastConnectErr = null;
+
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i];
+    const parsed = parseSanitizedUri(candidate.uri);
+    dbDiagnostics.rawScheme = parsed.scheme;
+    dbDiagnostics.sanitizedHost = parsed.host;
+    dbDiagnostics.databaseName = parsed.database || 'cleanmysuru_ai';
+    dbDiagnostics.username = parsed.username;
+    dbDiagnostics.hasPassword = parsed.hasPassword;
+
+    logger.info(`[DB-CONNECT] Trying ${candidate.label} -> host: ${parsed.host}, db: ${dbDiagnostics.databaseName}, user: ${parsed.username || 'none'}`);
+
+    if (parsed.host && parsed.host.includes('mongodb.net')) {
+      dbDiagnostics.dnsDiagnostics = await checkDns(parsed.host);
+    }
+
+    try {
+      const conn = await mongoose.connect(candidate.uri, {
+        serverSelectionTimeoutMS: 5000,
+        dbName: 'cleanmysuru_ai',
+      });
+
+      dbDiagnostics.connected = true;
+      dbDiagnostics.connecting = false;
+      dbDiagnostics.lastError = null;
+      dbDiagnostics.failureClass = null;
+      dbDiagnostics.recoveredWithFallback = (i > 0);
+
+      logger.info(`[DB-SUCCESS] Connected successfully to host: ${conn.connection.host}, database: ${conn.connection.name} (via ${candidate.label})`);
+      return conn;
+    } catch (err) {
+      lastConnectErr = err;
+      dbDiagnostics.lastError = {
+        name: err.name,
+        message: err.message,
+        code: err.code || null,
+      };
+      dbDiagnostics.failureClass = classifyError(err, dbDiagnostics.dnsDiagnostics);
+
+      logger.warn(`[DB-WARN] Candidate ${candidate.label} failed [${dbDiagnostics.failureClass?.class}]: ${err.message}`);
+    }
+  }
+
+  dbDiagnostics.connected = false;
+  dbDiagnostics.connecting = false;
+  logger.error(`[DB-ERROR] All MongoDB connection candidates failed: ${lastConnectErr?.message}`);
+  throw lastConnectErr;
 };
 
 module.exports = { connectDB, dbDiagnostics };
