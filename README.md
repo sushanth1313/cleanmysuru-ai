@@ -49,7 +49,7 @@ graph TD
 - **Deployment**:
    Vercel ([cleanmysuru-ai-rfcj.vercel.app](https://cleanmysuru-ai-rfcj.vercel.app/))
   - Database: MongoDB Atlas Cloud Cluster
-
+- **10 Minute Demo**: Included as [`10min_demo_compressed.mp4`](./10min_demo_compressed.mp4)
 ---
 
 ## 📁 Repository Structure
@@ -95,5 +95,5 @@ cd cleanmysuru-ai
 - **Repository**: [https://github.com/sushanth1313/cleanmysuru-ai](https://github.com/sushanth1313/cleanmysuru-ai)
 - **Live Demo**: [https://cleanmysuru-ai-rfcj.vercel.app/](https://cleanmysuru-ai-rfcj.vercel.app/)
 - **Presentation**: Included as [`cleanai.ppt`](./cleanai.ppt)
-- **Video Walkthrough**: Included as [`recording.mp4`](./recording.mp4)
-- **10 Minute Demo**: Included as [`10min_demo_compressed.mp4`](./10min_demo_compressed.mp4)
+
+
