@@ -47,8 +47,7 @@ graph TD
 - **Database**: MongoDB Atlas with Mongoose ODM (structured schema for users, incidents, reviews, and audits).
 - **Authentication**: Secure JWT tokens, BCrypt password hashing, Role-Based Access Control (Citizen, Municipal Official, Admin).
 - **Deployment**:
-  - Frontend: Vercel ([cleanmysuru-ai-rfcj.vercel.app](https://cleanmysuru-ai-rfcj.vercel.app/))
-  - Backend: Render ([cleanmysuru-ai.onrender.com](https://cleanmysuru-ai.onrender.com))
+   Vercel ([cleanmysuru-ai-rfcj.vercel.app](https://cleanmysuru-ai-rfcj.vercel.app/))
   - Database: MongoDB Atlas Cloud Cluster
 
 ---
@@ -88,22 +87,6 @@ git clone https://github.com/sushanth1313/cleanmysuru-ai.git
 cd cleanmysuru-ai
 ```
 
-### 3. Frontend Setup
-```bash
-npm install
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### 4. Backend Setup
-```bash
-cd backend
-npm install
-npm run dev
-```
-Backend runs on [http://localhost:5000](http://localhost:5000).
-
----
 
 ## 🏆 HackMysuru 2026 Submission
 
