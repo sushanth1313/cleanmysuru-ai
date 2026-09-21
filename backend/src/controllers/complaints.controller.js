@@ -466,8 +466,8 @@ class ComplaintsController {
   async markWorkDone(req, res, next) {
     try {
       const { id } = req.params;
-      const { notes, responseNote } = req.body;
-      const note = responseNote || notes;
+      const { note: directNote, notes, responseNote, municipalityResponse, description } = req.body || {};
+      const note = directNote || responseNote || notes || municipalityResponse || description || 'Sanitation work completed successfully';
 
       if (!req.file) {
         return sendError(res, 'COMPLETION_EVIDENCE_REQUIRED', 'Real completion photo or video evidence is required', 400);
