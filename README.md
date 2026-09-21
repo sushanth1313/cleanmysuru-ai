@@ -58,6 +58,7 @@ graph TD
 ├── cleanai.ppt            # Project Presentation Slide Deck
 ├── cleanmysuru.ai.pptx    # High-resolution PowerPoint Presentation
 ├── recording.mp4          # Video demonstration of the application
+├── 10min_demo_compressed.mp4 # 10-minute video demonstration of the application
 ├── app/                   # Next.js App Router (Pages, Layouts, UI Components)
 ├── backend/               # Production Express API
 │   ├── src/
@@ -95,3 +96,4 @@ cd cleanmysuru-ai
 - **Live Demo**: [https://cleanmysuru-ai-rfcj.vercel.app/](https://cleanmysuru-ai-rfcj.vercel.app/)
 - **Presentation**: Included as [`cleanai.ppt`](./cleanai.ppt)
 - **Video Walkthrough**: Included as [`recording.mp4`](./recording.mp4)
+- **10 Minute Demo**: Included as [`10min_demo_compressed.mp4`](./10min_demo_compressed.mp4)
