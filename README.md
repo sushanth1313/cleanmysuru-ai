@@ -8,7 +8,7 @@
 
 | Deliverable | Resource / Link | Description |
 | :--- | :--- | :--- |
-| 🌐 **Live Web Application** | **[https://cleanmysuru-ai-ajeg.vercel.app/](https://cleanmysuru-ai-ajeg.vercel.app/)** | Deployed production frontend on Vercel |
+| 🌐 **Live Web Application** | **[https://cleanmysuru-ai-rfcj.vercel.app/](https://cleanmysuru-ai-rfcj.vercel.app/)** | Deployed production frontend on Vercel |
 | 📊 **Project Presentation (PPT)** | **[`cleanai.ppt`](./cleanai.ppt)** / **[`cleanmysuru.ai.pptx`](./cleanmysuru.ai.pptx)** | Complete slide deck detailing the vision, architecture, and impact |
 | 🎥 **Demo Video Recording** | **[`recording.mp4`](./recording.mp4)** | Full end-to-end video walkthrough and demonstration |
 | ⚙️ **Production API (Render)** | **[https://cleanmysuru-ai.onrender.com](https://cleanmysuru-ai.onrender.com)** | Node.js + Express backend service deployed on Render |
@@ -45,7 +45,7 @@ graph TD
 - **Database**: MongoDB Atlas with Mongoose ODM (structured schema for users, incidents, reviews, and audits).
 - **Authentication**: Secure JWT tokens, BCrypt password hashing, Role-Based Access Control (Citizen, Municipal Official, Admin).
 - **Deployment**:
-  - Frontend: Vercel ([cleanmysuru-ai-ajeg.vercel.app](https://cleanmysuru-ai-ajeg.vercel.app/))
+  - Frontend: Vercel ([cleanmysuru-ai-rfcj.vercel.app](https://cleanmysuru-ai-rfcj.vercel.app/))
   - Backend: Render ([cleanmysuru-ai.onrender.com](https://cleanmysuru-ai.onrender.com))
   - Database: MongoDB Atlas Cloud Cluster
 
@@ -107,6 +107,6 @@ Backend runs on [http://localhost:5000](http://localhost:5000).
 
 - **Team**: CleanMysuru AI
 - **Repository**: [https://github.com/sushanth1313/cleanmysuru-ai](https://github.com/sushanth1313/cleanmysuru-ai)
-- **Live Demo**: [https://cleanmysuru-ai-ajeg.vercel.app/](https://cleanmysuru-ai-ajeg.vercel.app/)
+- **Live Demo**: [https://cleanmysuru-ai-rfcj.vercel.app/](https://cleanmysuru-ai-rfcj.vercel.app/)
 - **Presentation**: Included as [`cleanai.ppt`](./cleanai.ppt)
 - **Video Walkthrough**: Included as [`recording.mp4`](./recording.mp4)

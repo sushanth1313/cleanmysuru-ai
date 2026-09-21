@@ -16,6 +16,11 @@ export function resolveApiBase(): string {
     raw = raw.replace(/mongodb(\+srv)?:\/\/[^\s]+/gi, '').trim();
   }
 
+  // Guard against obsolete legacy backend host
+  if (raw.includes('cleanmysuru-ai-2.onrender.com')) {
+    raw = raw.replace(/cleanmysuru-ai-2\.onrender\.com/g, 'cleanmysuru-ai.onrender.com');
+  }
+
   // Strip trailing slashes
   raw = raw.replace(/\/+$/, '').trim();
 

@@ -23,7 +23,7 @@ const corsOptions = {
     if (!origin) return callback(null, true);
 
     const allowedOrigins = [
-      'https://cleanmysuru-ai-ajeg.vercel.app',
+      'https://cleanmysuru-ai-rfcj.vercel.app',
       'https://cleanmysuruai.vercel.app',
       'http://localhost:3000',
       'http://127.0.0.1:3000',

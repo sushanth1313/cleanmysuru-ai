@@ -7,10 +7,13 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
-    const rawBackend = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
+    const defaultBackend = (process.env.NODE_ENV === 'production' || process.env.VERCEL)
+      ? 'https://cleanmysuru-ai.onrender.com'
+      : 'http://127.0.0.1:5000';
+    const rawBackend = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || defaultBackend;
     let backendBase = rawBackend.replace(/mongodb(\+srv)?:\/\/[^\s]+/i, '').replace(/\/api\/?$/, '').trim();
     if (!backendBase || !backendBase.startsWith('http')) {
-      backendBase = 'http://127.0.0.1:5000';
+      backendBase = defaultBackend;
     }
     return [
       {
