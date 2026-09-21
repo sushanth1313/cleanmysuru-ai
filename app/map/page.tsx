@@ -25,11 +25,7 @@ export default function MapPage() {
   const { user } = useStore()
   const router = useRouter()
 
-  useEffect(() => {
-    if (user && user.role !== 'ADMIN') {
-      router.push('/citizen')
-    }
-  }, [user, router])
+  // Map is accessible to all users for civic transparency
 
   const [typeFilter, setTypeFilter] = useState('All incident types')
   const [severityFilter, setSeverityFilter] = useState('All severities')
