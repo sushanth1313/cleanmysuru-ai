@@ -8,10 +8,10 @@
 
 | Deliverable | Resource / Link | Description |
 | :--- | :--- | :--- |
-| 🌐 **Live Web Application** | **[https://cleanmysuru-ai-rfcj.vercel.app/](https://cleanmysuru-ai-rfcj.vercel.app/)** | Deployed production frontend on Vercel |
+| 🌐 **Live Web Application** | **[https://cleanmysuru-ai-rfcj.vercel.app/](https://cleanmysuru-ai-rfcj.vercel.app/)** | Deployed production  on Vercel |
 | 📊 **Project Presentation (PPT)** | **[`cleanai.ppt`](./cleanai.ppt)** / **[`cleanmysuru.ai.pptx`](./cleanmysuru.ai.pptx)** | Complete slide deck detailing the vision, architecture, and impact |
 | 🎥 **Demo Video Recording** | **[`recording.mp4`](./recording.mp4)** | Full end-to-end video walkthrough and demonstration |
-| ⚙️ **Production API (Render)** | **[https://cleanmysuru-ai.onrender.com](https://cleanmysuru-ai.onrender.com)** | Node.js + Express backend service deployed on Render |
+
 
 ---
 
