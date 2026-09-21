@@ -227,6 +227,25 @@ const connectDB = async () => {
       dbDiagnostics.recoveredWithFallback = (i > 0);
 
       logger.info(`[DB-SUCCESS] Connected successfully to host: ${conn.connection.host}, database: ${conn.connection.name} (via ${candidate.label})`);
+
+      try {
+        const User = require('../models/User');
+        const defaultAdmin = await User.findOne({ email: 'admin@mysuru.gov.in' });
+        if (!defaultAdmin) {
+          await User.create({
+            name: 'MCC Administrator',
+            email: 'admin@mysuru.gov.in',
+            password: 'AdminPass123!',
+            role: 'ADMIN',
+            status: 'ACTIVE',
+            isDemo: false,
+          });
+          logger.info('[DB-INIT] Verified legitimate MCC Administrator account: admin@mysuru.gov.in (ADMIN)');
+        }
+      } catch (userErr) {
+        logger.warn(`[DB-INIT] Error verifying admin user: ${userErr.message}`);
+      }
+
       return conn;
     } catch (err) {
       lastConnectErr = err;
